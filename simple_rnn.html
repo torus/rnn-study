@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンプルなRNN実装</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .input-section {
+            margin: 20px 0;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .output-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        .hidden-state {
+            font-family: monospace;
+            background-color: #fff;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>シンプルなRNN実装</h1>
+        <p>このデモは、基本的なRNNがどのように隠れ状態を更新し、テキストを処理するかを視覚化します。</p>
+
+        <div class="input-section">
+            <label for="inputText">入力テキスト：</label>
+            <input type="text" id="inputText" value="hello" placeholder="処理するテキストを入力">
+            <button onclick="runRNN()">RNNを実行</button>
+        </div>
+
+        <div class="output-section">
+            <h2>処理の流れ</h2>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        class SimpleRNN {
+            constructor(inputSize, hiddenSize) {
+                this.inputSize = inputSize;
+                this.hiddenSize = hiddenSize;
+                
+                // 重み行列を初期化
+                this.W_x = this.randomMatrix(hiddenSize, inputSize);  // 入力→隠れ状態
+                this.W_h = this.randomMatrix(hiddenSize, hiddenSize); // 隠れ状態→隠れ状態
+                this.b = this.zeros(hiddenSize);                      // バイアス
+                
+                // 隠れ状態を初期化
+                this.h = this.zeros(hiddenSize);
+            }
+            
+            // ランダム行列を生成
+            randomMatrix(rows, cols) {
+                const matrix = [];
+                for (let i = 0; i < rows; i++) {
+                    matrix[i] = [];
+                    for (let j = 0; j < cols; j++) {
+                        matrix[i][j] = (Math.random() - 0.5) * 0.2; // 小さい値で初期化
+                    }
+                }
+                return matrix;
+            }
+            
+            // ゼロ行列を生成
+            zeros(size) {
+                return Array(size).fill(0);
+            }
+            
+            // tanh活性化関数
+            tanh(x) {
+                return Math.tanh(x);
+            }
+            
+            // ベクトル同士の行列積
+            matmul(matrix, vector) {
+                return matrix.map(row => 
+                    row.reduce((sum, val, i) => sum + val * vector[i], 0)
+                );
+            }
+            
+            // ベクトル同士の加算
+            add(v1, v2) {
+                return v1.map((val, i) => val + v2[i]);
+            }
+            
+            // 1ステップの計算
+            step(input) {
+                // 入力をベクトルに変換（文字コードを正規化）
+                const x = Array(this.inputSize).fill(0);
+                x[input.charCodeAt(0) % this.inputSize] = 1;
+                
+                // h(t) = tanh(W_h @ h(t-1) + W_x @ x(t) + b)
+                const h_new_raw = this.add(
+                    this.matmul(this.W_h, this.h),
+                    this.matmul(this.W_x, x)
+                );
+                
+                this.h = h_new_raw.map((val, i) => 
+                    this.tanh(val + this.b[i])
+                );
+                
+                return {
+                    input: input,
+                    h_new_raw: h_new_raw,
+                    h: this.h.slice() // コピーを返す
+                };
+            }
+        }
+
+        function runRNN() {
+            const inputText = document.getElementById('inputText').value;
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = '';
+            
+            if (!inputText) {
+                outputDiv.innerHTML = '<p>テキストを入力してください</p>';
+                return;
+            }
+            
+            // RNNを初期化（入力サイズ：100文字、隠れサイズ：8）
+            const rnn = new SimpleRNN(128, 8);
+            
+            // 各ステップを処理
+            inputText.split('').forEach((char, t) => {
+                const result = rnn.step(char);
+                
+                // 出力をHTML化
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step';
+                
+                const h_display = result.h
+                    .map(val => val.toFixed(3))
+                    .join(', ');
+                
+                stepDiv.innerHTML = `
+                    <strong>時刻 ${t + 1}：文字 '${result.input}'</strong>
+                    <div class="hidden-state">
+                        隠れ状態 h(${t + 1}) = [${h_display}]
+                    </div>
+                    <p>この隠れ状態には、これまでの入力「${inputText.substring(0, t + 1)}」の情報が圧縮されています。</p>
+                `;
+                
+                outputDiv.appendChild(stepDiv);
+            });
+            
+            // 最終結果
+            const finalDiv = document.createElement('div');
+            finalDiv.style.marginTop = '20px';
+            finalDiv.style.padding = '15px';
+            finalDiv.style.backgroundColor = '#fff3cd';
+            finalDiv.style.borderLeft = '4px solid #ffc107';
+            finalDiv.style.borderRadius = '4px';
+            finalDiv.innerHTML = `
+                <strong>✓ 処理完了</strong>
+                <p>入力「${inputText}」をRNNで処理しました。</p>
+                <p>最終的な隠れ状態には、全ての入力情報が圧縮された形で保持されています。</p>
+            `;
+            outputDiv.appendChild(finalDiv);
+        }
+    </script>
+</body>
+</html>
