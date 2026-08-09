@@ -95,7 +95,7 @@ $$y_t = W_y h_t + b_y$$
 
 ### 数値例
 
-簡単な例で説明します。$d_h = 3$ (隠れサイズ=3) と仮定：
+簡単な例で説明します。 $d_h = 3$  (隠れサイズ=3) と仮定：
 
 **時刻 1：**
 - 入力: $x_1 = [1, 0]^T$ (最初の単語"a")
@@ -179,7 +179,7 @@ $$\frac{\partial L}{\partial h_t} = \frac{\partial L_t}{\partial h_t} + \frac{\p
 
 ### 重み行列 $W_h$ の勾配
 
-最重要な点として、$W_h$ の勾配は全ステップの勾配から計算されます：
+最重要な点として、 $W_h$ の勾配は全ステップの勾配から計算されます：
 
 $$\frac{\partial L}{\partial W_h} = \sum_{t=1}^{T} \frac{\partial L}{\partial h_t} \cdot \frac{\partial h_t}{\partial W_h}$$
 
@@ -201,7 +201,7 @@ $$\frac{\partial h_t}{\partial h_{t-1}} = \text{diag}(\tanh'(\tilde{h}_t)) \cdot
 
 $$\tanh'(x) = 1 - \tanh^2(x) \leq 1$$
 
-- $\tanh$ の導関数の最大値は0.25（$x=0$付近）
+- $\tanh$ の導関数の最大値は0.25（ $x=0$ 付近）
 - 行列 $W_h$ も通常は正規化されているため、その最大特異値は1前後
 
 **結果：**
